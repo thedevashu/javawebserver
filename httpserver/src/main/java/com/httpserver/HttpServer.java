@@ -6,8 +6,12 @@ import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.httpserver.config.Configuration;
 import com.httpserver.config.ConfigurationManager;
+import com.httpserver.core.ServerListenerThread;
 
 /**
  * Driver class for the HTTP server
@@ -19,44 +23,28 @@ import com.httpserver.config.ConfigurationManager;
  *
  */
 public class HttpServer {
+
+    private final static Logger LOGGER= LoggerFactory.getLogger(HttpServer.class);
     public static void main(String[] args) {
-        System.out.println("Server started");
-        ConfigurationManager.getInstance()
-        .loadConfiguration("httpserver\\src\\resources\\http.json");
+        LOGGER.info("Server started");
+        ConfigurationManager configManager = ConfigurationManager.getInstance();
+        configManager.loadConfiguration("httpserver\\src\\resources\\http.json");
 
-        Configuration config = ConfigurationManager.getInstance().getConfiguration();
+        Configuration config = configManager.getConfiguration();
 
-        System.out.println("Port: " + ConfigurationManager.getInstance().getConfiguration().getPort());
-        System.out.println("Webroot: " + ConfigurationManager.getInstance().getConfiguration().getWebroot());
+        LOGGER.info("Port: " + config.getPort());
+        LOGGER.info("Webroot: " + config.getWebroot());
         try {
-            ServerSocket serverSocket = new ServerSocket(config.getPort());
-            Socket socket = serverSocket.accept();
+            ServerListenerThread serverListenerThread =
+                 new ServerListenerThread(config.getPort(), config.getWebroot());
 
-            System.out.println("Client connected");
-
-            InputStream inputStream = socket.getInputStream();
-
-            OutputStream outputStream = socket.getOutputStream();
-
-            //read the input stream
-            String html = "<html><head>  <title>Http Server</title> </head><body><h1>Build this using sockets</h1> </body> </html>";
-            final String CRLF = "\r\n"; // 13, 10
-            String response =
-                    "HTTP/1.1 200 OK" +CRLF+//status line HTTP version response code response message
-                            "Content-Length: " + html.length() + CRLF +
-                            CRLF+ html;
-            //write to the output stream
-            outputStream.write(response.getBytes());
-            
-            inputStream.close();
-            outputStream.close();
-            socket.close();
-            serverSocket.close();
+                 serverListenerThread.start();
         } catch (IOException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
+        
 
-        System.out.println("Server stopped");
+        LOGGER.info("Server stopped");
     }
 }
